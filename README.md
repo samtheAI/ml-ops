@@ -13,13 +13,13 @@ streamlit run app.py
 
 ## Deploy on Streamlit Community Cloud
 
-1. Create a GitHub repository and push this folder.
-2. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) with GitHub.
-3. Choose **Create app**, then select the repository, branch and `app.py`.
+1. Open [Streamlit Community Cloud](https://share.streamlit.io/) and sign in with GitHub.
+2. Choose **Create app**.
+3. Select repository `samtheAI/ml-ops`, branch `main`, and file `app.py`.
 4. Choose Python 3.12 in Advanced settings if prompted.
 5. Deploy.
 
-Streamlit Community Cloud reads `requirements.txt` from the repository and installs the pinned dependencies.
+Community Cloud reads `requirements.txt` and installs the pinned dependencies.
 
 ## Teaching flow
 
