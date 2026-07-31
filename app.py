@@ -85,7 +85,7 @@ with st.sidebar:
     st.markdown("## ◈ LIVE MLOPS LAB")
     st.caption("One page. One model. One production story.")
     st.divider()
-    mode = st.radio("Choose a moment in the lifecycle", ["01 · Notebook cliff", "02 · Training pipeline", "03 · Live inference", "04 · Observe + retrain"], index=2)
+    mode = st.radio("Choose a moment in the lifecycle", ["01 · Notebook cliff", "02 · Training pipeline", "03 · Live inference", "04 · Observe + retrain", "05 · /ml-ops dashboard"], index=2)
     st.divider()
     st.caption("Teaching controls")
     model_version = st.selectbox("Artifact version", ["v1.3 · candidate", "v1.2 · production", "v1.1 · archived"], index=0)
@@ -155,6 +155,38 @@ elif mode == "03 · Live inference":
         else:
             st.info("Submit the request to see validation, preprocessing, inference, latency and logging.")
     st.markdown('<div class="footer-note">Teaching simulation: the goal is to expose the service boundaries and observability signals, not to make a real survival claim.</div>', unsafe_allow_html=True)
+
+elif mode == "05 · /ml-ops dashboard":
+    st.markdown('<div class="section-label">05 · /ML-OPS</div><div class="section-title">Live MLOps command center</div>', unsafe_allow_html=True)
+    events = pd.DataFrame(st.session_state.request_events)
+    if events.empty:
+        events = pd.DataFrame(columns=["time", "status", "latency_ms", "model"])
+    errors = int((events.get("status", pd.Series(dtype=int)) >= 400).sum())
+    usage_count = len(events)
+    p95 = float(events["latency_ms"].quantile(.95)) if not events.empty else 0.0
+    avg = float(events["latency_ms"].mean()) if not events.empty else 0.0
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Usage", usage_count, "requests this session")
+    c2.metric("Errors", errors, "HTTP 4xx / 5xx")
+    c3.metric("p95 latency", f"{p95:.1f} ms" if p95 else "—", "target < 100 ms")
+    c4.metric("Drift status", "Watch", "age feature")
+    left, right = st.columns([1.35, 1])
+    with left:
+        st.markdown("#### Latency and request volume")
+        if not events.empty:
+            chart = events.reset_index(drop=True)[["latency_ms"]]
+            st.line_chart(chart, height=220)
+        else:
+            st.info("Run predictions from Live inference to populate this dashboard.")
+    with right:
+        st.markdown("#### Alert rules")
+        st.markdown('<div class="card"><p><b>Errors</b> alert if rate &gt; 2%</p><p><b>Latency</b> alert if p95 &gt; 100 ms</p><p><b>Drift</b> alert if PSI &gt; 0.20</p><p><b>Action</b> investigate → rollback → retrain</p></div>', unsafe_allow_html=True)
+    st.markdown("#### Recent structured logs")
+    if not events.empty:
+        st.dataframe(events.sort_index(ascending=False).head(10), use_container_width=True, hide_index=True)
+    else:
+        st.caption("No events yet. Logs will appear here after the first prediction.")
+    st.markdown('<div class="warning">Session-local teaching dashboard: production systems should send these events to a durable log store and metrics backend.</div>', unsafe_allow_html=True)
 
 else:
     st.markdown('<div class="section-label">04 · OPERATE THE SYSTEM</div><div class="section-title">Production quality can change while the code stays the same</div>', unsafe_allow_html=True)
