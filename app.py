@@ -78,6 +78,8 @@ def build_model():
 
 
 model, training_data = build_model()
+if "request_events" not in st.session_state:
+    st.session_state.request_events = []
 
 with st.sidebar:
     st.markdown("## ◈ LIVE MLOPS LAB")
@@ -139,6 +141,12 @@ elif mode == "03 · Live inference":
             started = time.perf_counter()
             probability = float(model.predict_proba(pd.DataFrame([payload]))[0, 1])
             latency = (time.perf_counter() - started) * 1000
+            st.session_state.request_events.append({
+                "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
+                "status": 200,
+                "latency_ms": round(latency, 1),
+                "model": model_version.split(" · ")[0],
+            })
             st.markdown(f'<div class="status">200 OK · model {model_version.split(" · ")[0]} · {latency:.1f} ms</div>', unsafe_allow_html=True)
             st.metric("Predicted probability", f"{probability:.0%}", "decision = 1" if probability >= .5 else "decision = 0")
             if show_trace:
@@ -150,11 +158,17 @@ elif mode == "03 · Live inference":
 
 else:
     st.markdown('<div class="section-label">04 · OPERATE THE SYSTEM</div><div class="section-title">Production quality can change while the code stays the same</div>', unsafe_allow_html=True)
+    events = pd.DataFrame(st.session_state.request_events)
+    usage_count = len(events)
+    avg_latency = f"{events['latency_ms'].mean():.1f} ms" if not events.empty else "—"
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Availability", "99.94%", "healthy")
-    c2.metric("p95 latency", "84 ms", "-12 ms")
-    c3.metric("Schema errors", "2.1%", "+0.6%", delta_color="inverse")
+    c1.metric("Usage", usage_count, "requests this session")
+    c2.metric("p95 latency", avg_latency, "live trace" if not events.empty else "no requests yet")
+    c3.metric("Errors", "0", "schema + 5xx")
     c4.metric("Age drift", "Alert", "investigate", delta_color="inverse")
+    if not events.empty:
+        st.markdown("#### Recent request log")
+        st.dataframe(events.sort_index(ascending=False).head(8), use_container_width=True, hide_index=True)
     st.markdown("#### Drift does not mean retrain immediately")
     st.dataframe(pd.DataFrame({"signal": ["input drift", "invalid requests", "label quality", "latency"], "what it tells us": ["population changed", "caller contract failing", "model quality changed", "service degraded"], "next action": ["investigate", "fix/communicate schema", "compare candidate", "inspect service"],}), use_container_width=True, hide_index=True)
     st.markdown('<div class="warning">Retraining loop: detect → investigate → retrain → compare → canary → promote or rollback.</div>', unsafe_allow_html=True)
