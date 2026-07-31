@@ -5,7 +5,9 @@ import json
 import math
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -50,6 +52,7 @@ NUMERIC = ["age", "fare", "siblings_spouses", "parents_children"]
 CATEGORICAL = ["sex", "passenger_class", "embarked"]
 
 
+# Kept as a notebook reference for teaching; the app never calls this function.
 @st.cache_resource
 def build_model():
     rng = np.random.default_rng(42)
@@ -77,7 +80,12 @@ def build_model():
     return pipe, data
 
 
-model, training_data = build_model()
+ARTIFACT_PATH = Path(__file__).with_name("titanic_pipeline.joblib")
+if not ARTIFACT_PATH.exists():
+    st.error("Missing model artifact: titanic_pipeline.joblib")
+    st.stop()
+model = joblib.load(ARTIFACT_PATH)
+training_data = None
 if "request_events" not in st.session_state:
     st.session_state.request_events = []
 
